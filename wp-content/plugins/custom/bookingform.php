@@ -2,44 +2,75 @@
 /*
 Plugin Name: Booking Vehicle
 Plugin URI: 
-Description: Simple Booking vehicle 
+Description: Simple Booking vehicle  Add short code for Booking enquiry form [wp_booking_form]
 Version: 1.0
 Author: dev
 Author URI: 
 */
- 
+
+ /*
+ * Get Post By category id 
+ */
+
+function prefix_load_cat_posts () {
+    global $post;
+
+    $cat_id = $_POST[ 'cat' ];
+
+         $args = array (
+        'cat' => $cat_id,
+        //'posts_per_page' => 10,
+        'order' => 'DESC'
+
+    );
+
+    $posts = get_posts( $args );
+
+    ob_start ();
+
+    foreach ( $posts as $post ) {
+    setup_postdata( $post ); 
+    
+    //print_r($post);die;
+    ?>
+    <select name="vehicle_id" id="vehicle_id">
+    <option value="<?php echo $post->ID; ?>"><?php the_title(); ?></option>
+    </select>
+
+   <?php } wp_reset_postdata();
+
+   $response = ob_get_contents();
+   ob_end_clean();
+
+   echo $response;
+   die(1);
+   }
+
+
     function html_frontend_form() {
-        echo '<form action="' . esc_url( $_SERVER['REQUEST_URI'] ) . '" method="post">';
-        echo '<p>';
-        echo 'Your Name (required) <br />';
-        echo '<input type="text" name="cf-name" pattern="[a-zA-Z0-9 ]+" value="' . ( isset( $_POST["cf-name"] ) ? esc_attr( $_POST["cf-name"] ) : '' ) . '" size="40" />';
-        echo '</p>';
-        echo '<p>';
-        echo 'Your Email (required) <br />';
-        echo '<input type="email" name="cf-email" value="' . ( isset( $_POST["cf-email"] ) ? esc_attr( $_POST["cf-email"] ) : '' ) . '" size="40" />';
-        echo '</p>';
-        echo '<p>';
-        echo 'Subject (required) <br />';
-        echo '<input type="text" name="cf-subject" pattern="[a-zA-Z ]+" value="' . ( isset( $_POST["cf-subject"] ) ? esc_attr( $_POST["cf-subject"] ) : '' ) . '" size="40" />';
-        echo '</p>';
-        echo '<p>';
-        echo 'Your Message (required) <br />';
-        echo '<textarea rows="10" cols="35" name="cf-message">' . ( isset( $_POST["cf-message"] ) ? esc_attr( $_POST["cf-message"] ) : '' ) . '</textarea>';
-        echo '</p>';
-        echo '<p><input type="submit" name="cf-submitted" value="Send"/></p>';
-        echo '</form>';
+        include( plugin_dir_path( __FILE__ ) . 'forms/Enquirybook.php'); 
     }
 
     function deliver_mail() {
 
+        global $wpdb;
+
+
         // if the submit button is clicked, send the email
-        if ( isset( $_POST['cf-submitted'] ) ) {
+        if ( isset( $_POST['bookenquirysub'] ) ) {
     
             // sanitize form values
-            $name    = sanitize_text_field( $_POST["cf-name"] );
-            $email   = sanitize_email( $_POST["cf-email"] );
-            $subject = sanitize_text_field( $_POST["cf-subject"] );
-            $message = esc_textarea( $_POST["cf-message"] );
+            $firstname    = sanitize_text_field( $_POST["first_name"] );
+            $lastname   = sanitize_text_field( $_POST["last_name"] );
+            $phone = sanitize_text_field( $_POST["phone"] );
+            $message = esc_textarea( $_POST["message"] );
+            $vehicle_type_id    = sanitize_text_field( $_POST["vehicle_type_id"] );
+            $email   = sanitize_email( $_POST["email"] );
+            $vehicle_id = sanitize_text_field( $_POST["vehicle_id"] );
+
+            $insertarry =array( 'first_name' => $firstname, 'last_name' => $lastname, 'phone' => $phone, 'email' => $email, 'message' => $message, 'vehicle_type_id' => $vehicle_type_id, 'vehicle_post_id' => $vehicle_id );
+            //print_r($insertarry);die;
+            $rows_affected = $wpdb->insert('wp_vehicle_booking', $insertarry);
     
             // get the blog administrator's email address
             $to = get_option( 'admin_email' );
@@ -64,14 +95,14 @@ Author URI:
             global $table_prefix, $wpdb;
         
             $tblname = 'vehicle_booking';
-            $wp_track_table = $table_prefix . "$tblname ";
+            $wp_track_table = $table_prefix . "$tblname";
         
             #Check to see if the table exists already, if not, then create it
         
             if($wpdb->get_var( "show tables like '$wp_track_table'" ) != $wp_track_table) 
             {
         
-                $sql = "CREATE TABLE `". $wp_track_table. "` ( ";
+                $sql = "CREATE TABLE `".$wp_track_table."` ( ";
                 $sql .= "  `id`  int(11)   NOT NULL auto_increment, ";
                 $sql .= "  `first_name`  VARCHAR(100)   DEFAULT NULL, ";
                 $sql .= "  `last_name`  VARCHAR(100)   DEFAULT NULL, ";
@@ -80,8 +111,9 @@ Author URI:
                 $sql .= "  `vehicle_type_id`  int(11)   DEFAULT NULL, ";
                 $sql .= "  `vehicle_post_id`  int(11)   DEFAULT NULL, ";     
                 $sql .= "  `message`  VARCHAR(255)   DEFAULT NULL, ";
+                $sql .= "  `status`  int(11)   DEFAULT 1, "; //1 pending 2 approved 3 rejected
                 $sql .= "  `created_at`  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, ";
-                $sql .= "  `updated_at`  TIMESTAMP NOT NULL DEFAULT NULL, ";
+                $sql .= "  `updated_at`  TIMESTAMP NULL , ";
                 $sql .= "  PRIMARY KEY (`id`) "; 
                 $sql .= ") ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ; ";
                // echo $sql ; die;
@@ -102,8 +134,6 @@ Author URI:
 
 
 
-        
-
     function cf_shortcode() {
         ob_start();
         deliver_mail();
@@ -111,6 +141,72 @@ Author URI:
     
         return ob_get_clean();
     }
+
+
+    	
+function custom_post_type() {
+ 
+    // Set UI labels for Custom Post Type
+        $labels = array(
+            'name'                => _x( 'Vehicle', 'Post Type General Name', 'twentythirteen' ),
+            'singular_name'       => _x( 'Vehicle', 'Post Type Singular Name', 'twentythirteen' ),
+            'menu_name'           => __( 'Vehicles', 'twentythirteen' ),
+            'parent_item_colon'   => __( 'Parent Movie', 'twentythirteen' ),
+            'all_items'           => __( 'All Vehicles', 'twentythirteen' ),
+            'view_item'           => __( 'View Vehicle', 'twentythirteen' ),
+            'add_new_item'        => __( 'Add New Vehicle', 'twentythirteen' ),
+            'add_new'             => __( 'Add Vehicle', 'twentythirteen' ),
+            'edit_item'           => __( 'Edit Vehicle', 'twentythirteen' ),
+            'update_item'         => __( 'Update Vehicle', 'twentythirteen' ),
+            'search_items'        => __( 'Search Vehicle', 'twentythirteen' ),
+            'not_found'           => __( 'Not Found', 'twentythirteen' ),
+            'not_found_in_trash'  => __( 'Not found in Trash', 'twentythirteen' ),
+        );
+         
+    // Set other options for Custom Post Type
+         
+        $args = array(
+            'label'               => __( 'vehicle', 'twentythirteen' ),
+            'description'         => __( 'Vehicle news and reviews', 'twentythirteen' ),
+            'labels'              => $labels,
+            'supports'            => array( 'title', 'editor', 'excerpt', 'author', 'thumbnail', 'comments', 'revisions', 'custom-fields', ),
+            'hierarchical'        => false,
+            'public'              => true,
+            'show_ui'             => true,
+            'show_in_menu'        => true,
+            'show_in_nav_menus'   => true,
+            'show_in_admin_bar'   => true,
+            'menu_position'       => 5,
+            'can_export'          => true,
+            'has_archive'         => true,
+            'exclude_from_search' => false,
+            'publicly_queryable'  => true,
+            'capability_type'     => 'page',
+             
+            // This is where we add taxonomies to our CPT
+            'taxonomies'          => array( 'category' ),
+        );
+         
+        // Registering your Custom Post Type
+        register_post_type( 'movies', $args );
+     
+    }
+
+
+    function enquiry_list_page() {
+
+        include( plugin_dir_path( __FILE__ ) . 'forms/booklisting.php');
+
+    }
+
+    
+     
+    /* Hook into the 'init' action so that the function
+    * Containing our post type registration is not 
+    * unnecessarily executed. 
+    */
+     
+    add_action( 'init', 'custom_post_type', 0 );
 
 
     //Activation hook for creating table in db while activating
@@ -122,4 +218,22 @@ Author URI:
 
     // Frontend Form shortr code
     add_shortcode( 'wp_booking_form', 'cf_shortcode' );
+
+    //hook
+    add_action( 'wp_ajax_load-filter', 'prefix_load_cat_posts' );
+    
+    
+    //admin menu
+    add_action( 'admin_menu', 'VehicleBooking' );  
+    function VehicleBooking(){   
+            $page_title = 'VehicleBooking Post Info';  
+            $menu_title = 'VehicleBooking Page Info'; 
+            $capability = 'manage_options';   
+            $menu_slug  = 'enquiry-list';  
+            $function   = 'enquiry_list_page';  
+            $icon_url   = 'dashicons-media-code'; 
+            $position   = 6;    
+    add_menu_page( $page_title,$menu_title,$capability, $menu_slug, $function, $icon_url,$position ); 
+
+}
 ?>

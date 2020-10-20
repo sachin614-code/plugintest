@@ -11,7 +11,7 @@ $Bookings = $wpdb->get_results( "SELECT * FROM wp_vehicle_booking INNER JOIN wp_
 
 <div class="container">
   <h2>Booking List</h2>
-           
+  <div id="loading-animation" style="display: none; text-align:center"><img src="<?php echo admin_url ( 'images/loading-new.gif' ); ?>"/></div>        
   <table class="table table-striped">
     <thead>
       <tr>
@@ -44,7 +44,7 @@ $Bookings = $wpdb->get_results( "SELECT * FROM wp_vehicle_booking INNER JOIN wp_
     </tbody>
   </table>
 </div>
-
+<div id="response"></div>
 <script>
 $('body').on('change','#getstatus', function(e){
   var ID =$(this).attr('data-id');
@@ -53,14 +53,18 @@ $('body').on('change','#getstatus', function(e){
 
   var ajaxurl = '<?php echo admin_url( 'admin-ajax.php' );  ?>';
   if(confirm("Are you sure you want to change status?")){
+    $("#loading-animation").show(); 
     $.ajax({
         type: 'POST',
         url: ajaxurl,
-        data: {"action": "change-status", id: ID, status: status,to :  },
+        data: {"action": "change-status", id: ID, status: status,toemail :  toemail},
         success: function(response) {
-          
+            $('#response').html("");
+            $('#response').html(response);
             $("#loading-animation").hide();
+            setTimeout(function(){
             location.reload();
+          }, 2000);
             return false;
         }
     });

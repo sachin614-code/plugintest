@@ -25,7 +25,7 @@ function changebookingstatus(){
 
         $from = get_option( 'admin_email' );
 
-        $to = '';
+        $to = $_POST['toemail'];
     
         $subject = "Request Change Booking Status";
         $headers = "From: <$from>" . "\r\n";
@@ -47,8 +47,9 @@ function changebookingstatus(){
             echo '<div>';
             echo '<p>Thanks for contacting me, expect a response soon.</p>';
             echo '</div>';
+            die;
         } else {
-            echo 'An unexpected error occurred';
+            echo 'Email not sent unexpected error occurred'; die;
         }
     }
 }

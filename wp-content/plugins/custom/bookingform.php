@@ -8,52 +8,6 @@ Author: dev
 Author URI: 
 */
 
-
-/*
-* Change Booking status Ajax
-*/
-
-function changebookingstatus(){
-    global $wpdb;
-
-    $status = $_POST[ 'status' ];
-    $id = $_POST[ 'id' ];
-
-    $run = $wpdb->query($wpdb->prepare("UPDATE wp_vehicle_booking SET status='$status' WHERE id=$id"));
-
-    if($run) {
-
-        $from = get_option( 'admin_email' );
-
-        $to = $_POST['toemail'];
-    
-        $subject = "Request Change Booking Status";
-        $headers = "From: <$from>" . "\r\n";
-        
-        if($status == 1){ 
-            $message = "Enquiry Booking has been changed to Pending";
-
-        } elseif($row->status == 2 ){
-
-            $message = "Enquiry Booking has been changed to Approved";
-        }else{ 
-
-            $message = "Enquiry Booking has been changed to Rejected";
-        }
-       
-
-        // If email has been process for sending, display a success message
-        if ( wp_mail( $to, $subject, $message, $headers ) ) {
-            echo '<div>';
-            echo '<p>Thanks for contacting me, expect a response soon.</p>';
-            echo '</div>';
-            die;
-        } else {
-            echo 'Email not sent unexpected error occurred'; die;
-        }
-    }
-}
-
  /*
  * Get Post By category id 
  */
@@ -120,16 +74,16 @@ function prefix_load_cat_posts () {
     
             // get the blog administrator's email address
             $to = get_option( 'admin_email' );
-            $subject = "Enquiry Booking";
-            $headers = "From: $firstname <$email>" . "\r\n";
-            $message = "Enquiry Booking has been added";
+    
+            $headers = "From: $name <$email>" . "\r\n";
+    
             // If email has been process for sending, display a success message
             if ( wp_mail( $to, $subject, $message, $headers ) ) {
                 echo '<div>';
                 echo '<p>Thanks for contacting me, expect a response soon.</p>';
                 echo '</div>';
             } else {
-                echo 'Email sent unexpected error occurred';
+                echo 'An unexpected error occurred';
             }
         }
     }
@@ -246,8 +200,6 @@ function custom_post_type() {
     }
 
     
-
-    
      
     /* Hook into the 'init' action so that the function
     * Containing our post type registration is not 
@@ -269,9 +221,6 @@ function custom_post_type() {
 
     //hook
     add_action( 'wp_ajax_load-filter', 'prefix_load_cat_posts' );
-
-    //Change status
-    add_action( 'wp_ajax_change-status', 'changebookingstatus' );
     
     
     //admin menu

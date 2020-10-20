@@ -29,11 +29,41 @@ $Bookings = $wpdb->get_results( "SELECT * FROM wp_vehicle_booking INNER JOIN wp_
     
         <td><?=$row->email ?> </td>
         <td><?=$row->post_title ?></td>
-        <td><?php if($row->status == 1){ echo "Pending";} elseif($row->status == 2 ){ echo "Approved";}else{ echo "rejected"; } ?></td>
-        <td><select name="getstatus" ><option value="1">Approved</option><option value="2">Pending</option><option value="3">Rejected</option></select></td>
+        <td><?php 
+        if($row->status == 1){
+           echo "Pending"; 
+           } elseif($row->status == 2 ){ 
+             echo "Approved";
+           }else{ echo "Rejected";
+            } ?>
+            </td>
+        <td><select name="getstatus" id="getstatus" data-id="<?=$row->id ?>" data-email="<?=$row->email ?>"><option value="1"  <?php if($row->status == 1){ echo "selected";} ?>>Pending</option><option value="2" <?php if($row->status == 2){ echo "selected";} ?>>Approved</option><option value="3" <?php if($row->status == 3){ echo "selected";} ?>>Rejected</option></select></td>
       </tr>
     <?php } ?>
       
     </tbody>
   </table>
 </div>
+
+<script>
+$('body').on('change','#getstatus', function(e){
+  var ID =$(this).attr('data-id');
+  var status = $(this).val();
+  var toemail = $(this).attr('data-email');
+
+  var ajaxurl = '<?php echo admin_url( 'admin-ajax.php' );  ?>';
+  if(confirm("Are you sure you want to change status?")){
+    $.ajax({
+        type: 'POST',
+        url: ajaxurl,
+        data: {"action": "change-status", id: ID, status: status,to :  },
+        success: function(response) {
+          
+            $("#loading-animation").hide();
+            location.reload();
+            return false;
+        }
+    });
+  }
+});
+  </script>
